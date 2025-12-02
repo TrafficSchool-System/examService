@@ -2,12 +2,14 @@ package com.example.examService.Dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public class ExamSessionDTO {
     private List<QuizQuestionDTO> questions;
     private long durationMinutes;
     private LocalDateTime startsAt;
     private LocalDateTime expiresAt;
+    private Map<Long, String> savedAnswers; // questionId -> selectedAnswer
 
     public ExamSessionDTO(List<QuizQuestionDTO> questions, long durationMinutes, LocalDateTime startsAt,
             LocalDateTime expiresAt) {
@@ -49,8 +51,11 @@ public class ExamSessionDTO {
         this.expiresAt = expiresAt;
     }
 
-    
+    public Map<Long, String> getSavedAnswers() {
+        return savedAnswers;
+    }
 
-    
-    
+    public void setSavedAnswers(Map<Long, String> savedAnswers) {
+        this.savedAnswers = savedAnswers;
+    }
 }
