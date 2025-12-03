@@ -8,4 +8,6 @@ import com.example.examService.Entity.ExamSession;
 
 public interface ExamSessionRepository extends JpaRepository<ExamSession, Long> {
     Optional<ExamSession> findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(Long userId);
+
+    Optional<ExamSession> findTopByUserIdAndFinishedTrueOrderByStartsAtDesc(Long userId);
 }

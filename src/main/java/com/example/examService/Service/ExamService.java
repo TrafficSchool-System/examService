@@ -1,18 +1,24 @@
 package com.example.examService.Service;
 
+import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamSessionDTO;
+import com.example.examService.Dto.QuizQuestionDTO;
 import com.example.examService.Entity.Answer;
 import com.example.examService.Entity.ExamSession;
 import com.example.examService.Entity.Result;
 import com.example.examService.Exception.ExamNotFoundException;
+import com.example.examService.Exception.JsonParseException;
 import com.example.examService.Repository.AnswerRepository;
 import com.example.examService.Repository.ExamSessionRepository;
 import com.example.examService.Repository.ResultRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.time.Duration;
 
 @Service
 public class ExamService implements ExamServiceInterface {
@@ -21,18 +27,26 @@ public class ExamService implements ExamServiceInterface {
         private final ExamSessionRepository examSessionRepository;
         private final AnswerRepository answerRepository;
         private final ResultRepository resultRepository;
+        private final ObjectMapper objectMapper;
 
         public ExamService(WebClient quizWebClient, ExamSessionRepository examSessionRepository,
-                        AnswerRepository answerRepository, ResultRepository resultRepository) {
+                        AnswerRepository answerRepository, ResultRepository resultRepository,
+                        ObjectMapper objectMapper) {
                 this.quizWebClient = quizWebClient;
                 this.examSessionRepository = examSessionRepository;
                 this.answerRepository = answerRepository;
                 this.resultRepository = resultRepository;
+                this.objectMapper = objectMapper;
         }
 
+        // -------------------------------------------------------
+        // 📌 startExam — Startar ett prov, hämta frågor skapa session
+        // -------------------------------------------------------
         @Override
         public ExamSessionDTO startExam(Long userId) {
                 // Avsluta gamla sessioner
+                // Varje användare får bara ha ett aktiv prov
+                // Gammalt pågående prov -> markeras som avslutat
                 examSessionRepository.findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(userId)
                                 .ifPresent(oldSession -> {
                                         oldSession.setFinished(true);
@@ -53,6 +67,13 @@ public class ExamService implements ExamServiceInterface {
                 session.setExpiresAt(session.getStartsAt().plusMinutes(exam.getDurationMinutes()));
                 session.setFinished(false);
 
+                // Spara frågorna som JSON
+                try {
+                        session.setQuestionsJson(objectMapper.writeValueAsString(exam.getQuestions()));
+                } catch (Exception e) {
+                        throw new JsonParseException("Kunde inte spara frågor som JSON", e);
+                }
+
                 examSessionRepository.save(session);
 
                 exam.setStartsAt(session.getStartsAt());
@@ -61,6 +82,9 @@ public class ExamService implements ExamServiceInterface {
                 return exam;
         }
 
+        // -------------------------------------------------------
+        // 📌 getExamStatus — Hämta status på ett prov
+        // -------------------------------------------------------
         @Override
         public ExamSessionDTO getExamStatus(Long userId) {
                 ExamSession session = examSessionRepository.findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(userId)
@@ -87,6 +111,9 @@ public class ExamService implements ExamServiceInterface {
                 return exam;
         }
 
+        // -------------------------------------------------------
+        // 📌 saveAnswer — Spara svar
+        // -------------------------------------------------------
         @Override
         public void saveAnswer(Long userId, Long questionId, String selectedAnswer) {
 
@@ -112,14 +139,19 @@ public class ExamService implements ExamServiceInterface {
                 // Uppdatera svaret (oavsett om det är nytt eller gammalt)
                 answer.setSelectedAnswer(selectedAnswer);
 
-                // 3. Hämta frågorna från quizService för att kontrollera om svaret är rätt
-                ExamSessionDTO exam = quizWebClient.get()
-                                .uri("/final-exam")
-                                .retrieve()
-                                .bodyToMono(ExamSessionDTO.class)
-                                .block();
+                // 3. Hämta sparade frågor från sessionen för att kontrollera om svaret är rätt
+                List<QuizQuestionDTO> questions;
+                try {
+                        questions = objectMapper.readValue(
+                                        session.getQuestionsJson(),
+                                        objectMapper.getTypeFactory().constructCollectionType(
+                                                        List.class,
+                                                        QuizQuestionDTO.class));
+                } catch (Exception e) {
+                        throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
+                }
 
-                boolean isCorrect = exam.getQuestions().stream()
+                boolean isCorrect = questions.stream()
                                 .filter(q -> q.getId().equals(questionId))
                                 .anyMatch(q -> q.getAnswers().get(q.getCorrectAnswerIndex())
                                                 .trim().equalsIgnoreCase(selectedAnswer.trim()));
@@ -130,6 +162,9 @@ public class ExamService implements ExamServiceInterface {
                 answerRepository.save(answer);
         }
 
+        // -------------------------------------------------------
+        // 📌 finishExam — Avsluta ett prov
+        // -------------------------------------------------------
         @Override
         public void finishExam(Long userId) {
                 // 1. Hämta den aktiva sessionen
@@ -138,8 +173,8 @@ public class ExamService implements ExamServiceInterface {
                                 .orElseThrow(() -> new ExamNotFoundException(
                                                 "Ingen aktiv exam-session för användaren"));
 
-                // 2. Hämta alla svar för användaren
-                var answer = answerRepository.findByUserId(userId);
+                // 2. Hämta alla svar för DENNA session (inte alla användarens svar)
+                var answer = answerRepository.findByExamSession(session);
 
                 // 3. Räkna antal rätt
                 int score = (int) answer.stream()
@@ -164,5 +199,52 @@ public class ExamService implements ExamServiceInterface {
                 // 7. Spara resultatet
                 resultRepository.save(result);
 
+        }
+
+        // -------------------------------------------------------
+        // 📌 getExamResult — Hämta resultat
+        // -------------------------------------------------------
+        @Override
+        public ExamResultDTO getExamResult(Long userId) {
+                // 1. Hämta den senaste avslutade sessionen
+                ExamSession session = examSessionRepository
+                                .findTopByUserIdAndFinishedTrueOrderByStartsAtDesc(userId)
+                                .orElseThrow(() -> new ExamNotFoundException(
+                                                "Ingen avslutad exam-session hittades för användaren"));
+
+                // 2. Hämta resultat för sessionen
+                Result result = resultRepository.findByExamSession(session)
+                                .orElseThrow(() -> new ExamNotFoundException("Inget resultat hittades"));
+
+                // 3. Hämta sparade frågor från sessionen
+                List<QuizQuestionDTO> questions;
+                try {
+                        questions = objectMapper.readValue(
+                                        session.getQuestionsJson(),
+                                        objectMapper.getTypeFactory().constructCollectionType(
+                                                        List.class,
+                                                        QuizQuestionDTO.class));
+                } catch (Exception e) {
+                        throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
+                }
+
+                // 4. Hämta användarens svar
+                var answers = answerRepository.findByExamSession(session);
+                var userAnswersMap = answers.stream()
+                                .collect(java.util.stream.Collectors.toMap(
+                                                Answer::getQuestionId,
+                                                Answer::getSelectedAnswer));
+
+                // 5. Räkna ut hur lång tid provet tog (i minuter)
+                Duration duration = Duration.between(session.getStartsAt(), result.getFinishedAt());
+                int timeTaken = (int) duration.toMinutes();
+
+                // 6. Skapa och returnera ResultDTO
+                return new ExamResultDTO(
+                                result.getScore(),
+                                result.isPassed(),
+                                questions,
+                                userAnswersMap,
+                                timeTaken);
         }
 }

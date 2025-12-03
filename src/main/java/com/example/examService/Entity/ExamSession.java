@@ -17,6 +17,10 @@ public class ExamSession {
 
     private boolean finished;
 
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String questionsJson;
+
     // relation till resultat
     @OneToOne(mappedBy = "examSession", cascade = CascadeType.ALL)
     private Result result;
@@ -81,5 +85,11 @@ public class ExamSession {
         this.answers = answers;
     }
 
-    
+    public String getQuestionsJson() {
+        return questionsJson;
+    }
+
+    public void setQuestionsJson(String questionsJson) {
+        this.questionsJson = questionsJson;
+    }
 }

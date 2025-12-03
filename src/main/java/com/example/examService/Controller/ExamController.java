@@ -1,5 +1,6 @@
 package com.example.examService.Controller;
 
+import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamSessionDTO;
 import com.example.examService.Service.ExamServiceInterface;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +38,8 @@ public class ExamController {
     }
 
     // === Spara svar ===
-    // Här anropar vi service-metoden saveAnswer som sparar användarens svar i databasen.
+    // Här anropar vi service-metoden saveAnswer som sparar användarens svar i
+    // databasen.
     // Vi skickar med userId, questionId och selectedAnswer som query-parametrar.
     @PostMapping("/answer")
     public ResponseEntity<String> saveAnswer(
@@ -55,5 +57,13 @@ public class ExamController {
     public ResponseEntity<String> finishExam(@RequestParam Long userId) {
         examService.finishExam(userId);
         return ResponseEntity.ok("Prov avslutat!");
+    }
+
+    // === Hämta resultat ===
+    // Hämtar resultatet för användarens senaste avslutade prov
+    @GetMapping("/result")
+    public ResponseEntity<ExamResultDTO> getExamResult(@RequestParam Long userId) {
+        ExamResultDTO result = examService.getExamResult(userId);
+        return ResponseEntity.ok(result);
     }
 }
