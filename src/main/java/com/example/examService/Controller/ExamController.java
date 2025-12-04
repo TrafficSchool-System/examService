@@ -1,8 +1,12 @@
 package com.example.examService.Controller;
 
 import com.example.examService.Dto.ExamResultDTO;
+import com.example.examService.Dto.ExamResultSummaryDTO;
 import com.example.examService.Dto.ExamSessionDTO;
 import com.example.examService.Service.ExamServiceInterface;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,5 +69,12 @@ public class ExamController {
     public ResponseEntity<ExamResultDTO> getExamResult(@RequestParam Long userId) {
         ExamResultDTO result = examService.getExamResult(userId);
         return ResponseEntity.ok(result);
+    }
+
+    // === Hämta alla provresultat för en användare 
+    @GetMapping("/results")
+    public ResponseEntity<List<ExamResultSummaryDTO>> getAllResults(@RequestParam Long userId) {
+        List<ExamResultSummaryDTO> results = examService.getAllExamResults(userId); 
+        return ResponseEntity.ok(results); 
     }
 }

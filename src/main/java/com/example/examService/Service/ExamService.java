@@ -1,6 +1,7 @@
 package com.example.examService.Service;
 
 import com.example.examService.Dto.ExamResultDTO;
+import com.example.examService.Dto.ExamResultSummaryDTO;
 import com.example.examService.Dto.ExamSessionDTO;
 import com.example.examService.Dto.QuizQuestionDTO;
 import com.example.examService.Entity.Answer;
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.time.Duration;
 
 @Service
@@ -247,4 +249,55 @@ public class ExamService implements ExamServiceInterface {
                                 userAnswersMap,
                                 timeTaken);
         }
+
+        // -------------------------------------------------------
+        // 📌 getAllExamResults — Hämta alla provresultat för en användare
+        // -------------------------------------------------------
+        @Override
+        public List<ExamResultSummaryDTO> getAllExamResults(Long userId) {
+                // 1. Hämta alla avslutade sessioner för användaren
+                List<ExamSession> sessions = examSessionRepository
+                                .findAllByUserIdAndFinishedTrueOrderByStartsAtDesc(userId);
+
+                // 2. Konvertera varje session till ExamResultSummaryDTO
+                return sessions.stream()
+                                .map(session -> {
+                                        // Hämta resultat för denna session
+                                        Result result = resultRepository.findByExamSession(session)
+                                                        .orElse(null);
+
+                                        if (result == null) {
+                                                return null; // Hoppa över sessioner utan resultat
+                                        }
+
+                                        // Hämta antal frågor från sparade svar
+                                        int totalQuestions = answerRepository.findByExamSession(session).size();
+
+                                        // Räkna ut hur lång tid provet tog (i minuter)
+                                        Duration duration = Duration.between(session.getStartsAt(),
+                                                        result.getFinishedAt());
+                                        int timeTaken = (int) duration.toMinutes();
+
+                                        // Beräkna procent
+                                        int percentage = totalQuestions > 0
+                                                        ? (int) Math.round(((double) result.getScore() / totalQuestions)
+                                                                        * 100)
+                                                        : 0;
+
+                                        // Skapa DTO och sätt percentage
+                                        ExamResultSummaryDTO dto = new ExamResultSummaryDTO(
+                                                        result.getId(),
+                                                        result.getScore(),
+                                                        totalQuestions,
+                                                        result.isPassed(),
+                                                        timeTaken,
+                                                        result.getFinishedAt());
+                                        dto.setPercentage(percentage);
+
+                                        return dto;
+                                })
+                                .filter(dto -> dto != null) // Ta bort null-värden
+                                .collect(Collectors.toList());
+        }
+
 }

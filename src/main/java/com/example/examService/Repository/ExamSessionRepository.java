@@ -1,5 +1,6 @@
 package com.example.examService.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,4 +11,6 @@ public interface ExamSessionRepository extends JpaRepository<ExamSession, Long> 
     Optional<ExamSession> findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(Long userId);
 
     Optional<ExamSession> findTopByUserIdAndFinishedTrueOrderByStartsAtDesc(Long userId);
+
+    List<ExamSession> findAllByUserIdAndFinishedTrueOrderByStartsAtDesc(Long userId);
 }
