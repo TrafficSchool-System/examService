@@ -3,6 +3,7 @@ package com.example.examService.Service;
 import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamResultSummaryDTO;
 import com.example.examService.Dto.ExamSessionDTO;
+import com.example.examService.Dto.ExamStatsDTO;
 import com.example.examService.Dto.QuizQuestionDTO;
 import com.example.examService.Entity.Answer;
 import com.example.examService.Entity.ExamSession;
@@ -89,17 +90,29 @@ public class ExamService implements ExamServiceInterface {
         // -------------------------------------------------------
         @Override
         public ExamSessionDTO getExamStatus(Long userId) {
+
+                //
                 ExamSession session = examSessionRepository.findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(userId)
                                 .orElse(null);
                 if (session == null)
                         return null;
 
-                ExamSessionDTO exam = quizWebClient.get()
-                                .uri("/final-exam")
-                                .retrieve()
-                                .bodyToMono(ExamSessionDTO.class)
-                                .block();
+                // Läs sparade frågor från JSON 
+                List<QuizQuestionDTO> questions; 
+                try {
+                        questions = objectMapper.readValue(
+                                session.getQuestionsJson(), 
+                                objectMapper.getTypeFactory().constructCollectionType(
+                                        List.class,
+                                        QuizQuestionDTO.class));
+                } catch (Exception e) {
+                        throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
+                }
 
+                // Skapa ExamSessionDTO med de sparade frågorna
+                ExamSessionDTO exam = new ExamSessionDTO();
+                exam.setQuestions(questions);
+                exam.setDurationMinutes(50);
                 exam.setStartsAt(session.getStartsAt());
                 exam.setExpiresAt(session.getExpiresAt());
 
@@ -300,4 +313,71 @@ public class ExamService implements ExamServiceInterface {
                                 .collect(Collectors.toList());
         }
 
+        @Override
+        public ExamStatsDTO getExamStats(Long userId) {
+                
+                // Hämta alla resultat 
+                List<ExamResultSummaryDTO> results = getAllExamResults(userId); 
+
+                // Räkna statestik 
+                int total = results.size(); 
+                int passed = (int) results.stream().filter(r -> r.isPassed()).count();
+                int failed = total - passed; 
+
+
+                // Beräkna genomsnitt 
+                int averagePercentage = results.isEmpty() ? 0 : 
+                        (int) results.stream()
+                                .mapToInt(ExamResultSummaryDTO::getPercentage)
+                                .average()
+                                .orElse(0); 
+                
+                // Beräkna streak (från senaste och bakåt)
+                int currentStreak = 0; 
+                int bestStreak = 0; 
+                int tempStreak = 0; 
+
+                for (ExamResultSummaryDTO result : results) {
+                        if (result.isPassed()) {
+                                tempStreak++; 
+                                if(tempStreak > bestStreak) {
+                                        bestStreak = tempStreak; 
+                                }
+                                
+                        } else {
+                                tempStreak = 0;  
+                        }
+                }
+
+                // Current streak är från senaste provet
+                for(ExamResultSummaryDTO result : results) {
+                        if (result.isPassed()) {
+                                currentStreak++; 
+                        } else {
+                                break; // Stoppa vid första underkänt
+                        }
+                }
+
+                // Kan användaren göra riktig prov? 
+                boolean readyForRealExam = false; 
+                if (currentStreak >= 5) {
+                        readyForRealExam = results.stream()
+                                .limit(5)
+                                .allMatch(r -> r.isPassed() && r.getPercentage() >= 80);
+                        
+                }
+                // Retunera DTO
+                ExamStatsDTO stats = new ExamStatsDTO();
+                stats.setTotalExams(total);
+                stats.setPassedExams(passed);
+                stats.setFailedExams(failed);
+                stats.setAveragePercentage(averagePercentage);
+                stats.setCurrentStreak(currentStreak);
+                stats.setBestStreak(bestStreak);
+                stats.setReadyForRealExam(readyForRealExam); 
+
+                return stats; 
+        }
+
 }
+ 

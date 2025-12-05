@@ -14,8 +14,6 @@ public class QuizQuestionDTO {
 
     public QuizQuestionDTO(){}
 
-    
-
     public QuizQuestionDTO(Long id, String question, String sfi, List<String> answers, int correctAnswerIndex,
             String image, String explinationForStudent) {
         this.id = id;
