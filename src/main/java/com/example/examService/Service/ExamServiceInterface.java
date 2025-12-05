@@ -5,6 +5,7 @@ import java.util.List;
 import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamResultSummaryDTO;
 import com.example.examService.Dto.ExamSessionDTO;
+import com.example.examService.Dto.ExamStatsDTO;
 
 public interface ExamServiceInterface {
     ExamSessionDTO startExam(Long userId);
@@ -18,4 +19,6 @@ public interface ExamServiceInterface {
     ExamResultDTO getExamResult(Long userId);
 
     List<ExamResultSummaryDTO> getAllExamResults(Long userId); 
+
+    ExamStatsDTO getExamStats(Long userId); 
 }

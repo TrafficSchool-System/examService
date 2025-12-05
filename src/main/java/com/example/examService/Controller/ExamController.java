@@ -3,6 +3,7 @@ package com.example.examService.Controller;
 import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamResultSummaryDTO;
 import com.example.examService.Dto.ExamSessionDTO;
+import com.example.examService.Dto.ExamStatsDTO;
 import com.example.examService.Service.ExamServiceInterface;
 
 import java.util.List;
@@ -76,5 +77,12 @@ public class ExamController {
     public ResponseEntity<List<ExamResultSummaryDTO>> getAllResults(@RequestParam Long userId) {
         List<ExamResultSummaryDTO> results = examService.getAllExamResults(userId); 
         return ResponseEntity.ok(results); 
+    }
+
+    // === Hämta statestik för en användar ===
+    @GetMapping("/stats")
+    public ResponseEntity<ExamStatsDTO> getStats (@RequestParam Long userId) {
+        ExamStatsDTO stats = examService.getExamStats(userId); 
+        return ResponseEntity.ok(stats); 
     }
 }

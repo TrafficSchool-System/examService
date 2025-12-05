@@ -5,11 +5,16 @@ import java.util.List;
 import java.util.Map;
 
 public class ExamSessionDTO {
+
     private List<QuizQuestionDTO> questions;
     private long durationMinutes;
     private LocalDateTime startsAt;
     private LocalDateTime expiresAt;
     private Map<Long, String> savedAnswers; // questionId -> selectedAnswer
+
+    
+    public ExamSessionDTO() {
+    }
 
     public ExamSessionDTO(List<QuizQuestionDTO> questions, long durationMinutes, LocalDateTime startsAt,
             LocalDateTime expiresAt) {
