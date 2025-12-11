@@ -8,7 +8,7 @@ import com.example.examService.Dto.ExamSessionDTO;
 import com.example.examService.Dto.ExamStatsDTO;
 
 public interface ExamServiceInterface {
-    ExamSessionDTO startExam(Long userId);
+    ExamSessionDTO startExam(Long userId, String jwtToken);
 
     ExamSessionDTO getExamStatus(Long userId);
 
@@ -18,7 +18,7 @@ public interface ExamServiceInterface {
 
     ExamResultDTO getExamResult(Long userId);
 
-    List<ExamResultSummaryDTO> getAllExamResults(Long userId); 
+    List<ExamResultSummaryDTO> getAllExamResults(Long userId);
 
-    ExamStatsDTO getExamStats(Long userId); 
+    ExamStatsDTO getExamStats(Long userId);
 }

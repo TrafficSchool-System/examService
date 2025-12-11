@@ -46,7 +46,7 @@ public class ExamService implements ExamServiceInterface {
         // 📌 startExam — Startar ett prov, hämta frågor skapa session
         // -------------------------------------------------------
         @Override
-        public ExamSessionDTO startExam(Long userId) {
+        public ExamSessionDTO startExam(Long userId, String jwtToken) {
                 // Avsluta gamla sessioner
                 // Varje användare får bara ha ett aktiv prov
                 // Gammalt pågående prov -> markeras som avslutat
@@ -56,9 +56,10 @@ public class ExamService implements ExamServiceInterface {
                                         examSessionRepository.save(oldSession);
                                 });
 
-                // Hämta frågor från quizService
+                // Hämta frågor från quizService med JWT token
                 ExamSessionDTO exam = quizWebClient.get()
                                 .uri("/final-exam")
+                                .header("Authorization", "Bearer " + jwtToken)
                                 .retrieve()
                                 .bodyToMono(ExamSessionDTO.class)
                                 .block();
@@ -97,14 +98,14 @@ public class ExamService implements ExamServiceInterface {
                 if (session == null)
                         return null;
 
-                // Läs sparade frågor från JSON 
-                List<QuizQuestionDTO> questions; 
+                // Läs sparade frågor från JSON
+                List<QuizQuestionDTO> questions;
                 try {
                         questions = objectMapper.readValue(
-                                session.getQuestionsJson(), 
-                                objectMapper.getTypeFactory().constructCollectionType(
-                                        List.class,
-                                        QuizQuestionDTO.class));
+                                        session.getQuestionsJson(),
+                                        objectMapper.getTypeFactory().constructCollectionType(
+                                                        List.class,
+                                                        QuizQuestionDTO.class));
                 } catch (Exception e) {
                         throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
                 }
@@ -315,56 +316,55 @@ public class ExamService implements ExamServiceInterface {
 
         @Override
         public ExamStatsDTO getExamStats(Long userId) {
-                
-                // Hämta alla resultat 
-                List<ExamResultSummaryDTO> results = getAllExamResults(userId); 
 
-                // Räkna statestik 
-                int total = results.size(); 
+                // Hämta alla resultat
+                List<ExamResultSummaryDTO> results = getAllExamResults(userId);
+
+                // Räkna statestik
+                int total = results.size();
                 int passed = (int) results.stream().filter(r -> r.isPassed()).count();
-                int failed = total - passed; 
+                int failed = total - passed;
 
+                // Beräkna genomsnitt
+                int averagePercentage = results.isEmpty() ? 0
+                                : (int) results.stream()
+                                                .mapToInt(ExamResultSummaryDTO::getPercentage)
+                                                .average()
+                                                .orElse(0);
 
-                // Beräkna genomsnitt 
-                int averagePercentage = results.isEmpty() ? 0 : 
-                        (int) results.stream()
-                                .mapToInt(ExamResultSummaryDTO::getPercentage)
-                                .average()
-                                .orElse(0); 
-                
                 // Beräkna streak (från senaste och bakåt)
-                int currentStreak = 0; 
-                int bestStreak = 0; 
-                int tempStreak = 0; 
+                int currentStreak = 0;
+                int bestStreak = 0;
+                int tempStreak = 0;
 
                 for (ExamResultSummaryDTO result : results) {
                         if (result.isPassed()) {
-                                tempStreak++; 
-                                if(tempStreak > bestStreak) {
-                                        bestStreak = tempStreak; 
+                                tempStreak++;
+                                if (tempStreak > bestStreak) {
+                                        bestStreak = tempStreak;
                                 }
-                                
+
                         } else {
-                                tempStreak = 0;  
+                                tempStreak = 0;
                         }
                 }
 
                 // Current streak är från senaste provet
-                for(ExamResultSummaryDTO result : results) {
+                for (ExamResultSummaryDTO result : results) {
                         if (result.isPassed()) {
-                                currentStreak++; 
+                                currentStreak++;
                         } else {
                                 break; // Stoppa vid första underkänt
                         }
                 }
 
-                // Kan användaren göra riktig prov? 
-                boolean readyForRealExam = false; 
+                // Kan användaren göra riktig prov?
+                boolean readyForRealExam = false;
                 if (currentStreak >= 5) {
                         readyForRealExam = results.stream()
-                                .limit(5)
-                                .allMatch(r -> r.isPassed() && r.getPercentage() >= 80);
-                        
+                                        .limit(5)
+                                        .allMatch(r -> r.isPassed() && r.getPercentage() >= 80);
+
                 }
                 // Retunera DTO
                 ExamStatsDTO stats = new ExamStatsDTO();
@@ -374,10 +374,9 @@ public class ExamService implements ExamServiceInterface {
                 stats.setAveragePercentage(averagePercentage);
                 stats.setCurrentStreak(currentStreak);
                 stats.setBestStreak(bestStreak);
-                stats.setReadyForRealExam(readyForRealExam); 
+                stats.setReadyForRealExam(readyForRealExam);
 
-                return stats; 
+                return stats;
         }
 
 }
- 

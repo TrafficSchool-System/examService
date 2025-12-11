@@ -4,11 +4,12 @@ import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamResultSummaryDTO;
 import com.example.examService.Dto.ExamSessionDTO;
 import com.example.examService.Dto.ExamStatsDTO;
+import com.example.examService.Dto.SubmitAnswerRequest;
 import com.example.examService.Service.ExamServiceInterface;
-
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
-
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,72 +18,78 @@ public class ExamController {
 
     private final ExamServiceInterface examService;
 
-    // Konstruktor-injektion: Spring skickar in vår ExamService automatiskt
     public ExamController(ExamServiceInterface examService) {
         this.examService = examService;
     }
 
-    // === Starta ett nytt prov ===
-    // Här startar vi en ny exam-session för en användare.
-    // Vi skickar med userId som query-parameter (?userId=123).
+    // Hämta userId från JWT token (satt av JwtAuthenticationFilter)
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        return (Long) request.getAttribute("userId");
+    }
+
     @PostMapping("/start")
-    public ResponseEntity<ExamSessionDTO> startExam(@RequestParam Long userId) {
-        ExamSessionDTO exam = examService.startExam(userId);
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ExamSessionDTO> startExam(
+            HttpServletRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Long userId = getUserIdFromRequest(request);
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        ExamSessionDTO exam = examService.startExam(userId, jwtToken);
         return ResponseEntity.ok(exam);
     }
 
-    // === Hämta status för pågående prov ===
-    // Hämtar exam-sessionen för en användare om den inte är avslutad.
     @GetMapping("/status")
-    public ResponseEntity<ExamSessionDTO> getExamStatus(@RequestParam Long userId) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ExamSessionDTO> getExamStatus(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
         ExamSessionDTO exam = examService.getExamStatus(userId);
         if (exam == null) {
-            return ResponseEntity.notFound().build(); // returnerar 404 om ingen session finns
+            return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(exam);
     }
 
-    // === Spara svar ===
-    // Här anropar vi service-metoden saveAnswer som sparar användarens svar i
-    // databasen.
-    // Vi skickar med userId, questionId och selectedAnswer som query-parametrar.
     @PostMapping("/answer")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<String> saveAnswer(
-            @RequestParam Long userId,
-            @RequestParam Long questionId,
-            @RequestParam String selectedAnswer) {
-        examService.saveAnswer(userId, questionId, selectedAnswer);
+            HttpServletRequest request,
+            @RequestBody SubmitAnswerRequest answerRequest) {
+        Long userId = getUserIdFromRequest(request);
+        examService.saveAnswer(userId, answerRequest.getQuestionId(), answerRequest.getSelectedAnswer());
         return ResponseEntity.ok("Svar sparat!");
     }
 
-    // === Avsluta prov ===
-    // När användaren är klar med provet anropar vi finishExam.
-    // Den räknar rätt/fel och sparar resultatet i databasen.
     @PostMapping("/finish")
-    public ResponseEntity<String> finishExam(@RequestParam Long userId) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<String> finishExam(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
         examService.finishExam(userId);
         return ResponseEntity.ok("Prov avslutat!");
     }
 
-    // === Hämta resultat ===
-    // Hämtar resultatet för användarens senaste avslutade prov
     @GetMapping("/result")
-    public ResponseEntity<ExamResultDTO> getExamResult(@RequestParam Long userId) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ExamResultDTO> getExamResult(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
         ExamResultDTO result = examService.getExamResult(userId);
         return ResponseEntity.ok(result);
     }
 
-    // === Hämta alla provresultat för en användare 
     @GetMapping("/results")
-    public ResponseEntity<List<ExamResultSummaryDTO>> getAllResults(@RequestParam Long userId) {
-        List<ExamResultSummaryDTO> results = examService.getAllExamResults(userId); 
-        return ResponseEntity.ok(results); 
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<ExamResultSummaryDTO>> getAllResults(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        List<ExamResultSummaryDTO> results = examService.getAllExamResults(userId);
+        return ResponseEntity.ok(results);
     }
 
-    // === Hämta statestik för en användar ===
     @GetMapping("/stats")
-    public ResponseEntity<ExamStatsDTO> getStats (@RequestParam Long userId) {
-        ExamStatsDTO stats = examService.getExamStats(userId); 
-        return ResponseEntity.ok(stats); 
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ExamStatsDTO> getStats(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        ExamStatsDTO stats = examService.getExamStats(userId);
+        return ResponseEntity.ok(stats);
     }
+
+    
 }
