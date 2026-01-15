@@ -19,7 +19,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.time.Duration;
 
@@ -378,5 +380,15 @@ public class ExamService implements ExamServiceInterface {
 
                 return stats;
         }
+
+        @Override
+        public Map<String, Integer> getExamCounts() {
+                Map<String, Integer> counts = new HashMap<>();
+                counts.put("activeExams", (int) examSessionRepository.countByFinishedFalse());
+                counts.put("completedExams", (int) examSessionRepository.countByFinishedTrue());
+        return counts;
+}
+
+      
 
 }

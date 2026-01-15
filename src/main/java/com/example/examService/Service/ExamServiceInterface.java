@@ -1,6 +1,7 @@
 package com.example.examService.Service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.example.examService.Dto.ExamResultDTO;
 import com.example.examService.Dto.ExamResultSummaryDTO;
@@ -21,4 +22,8 @@ public interface ExamServiceInterface {
     List<ExamResultSummaryDTO> getAllExamResults(Long userId);
 
     ExamStatsDTO getExamStats(Long userId);
+
+    Map<String, Integer> getExamCounts(); 
+
+
 }
