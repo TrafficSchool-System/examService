@@ -15,58 +15,72 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+        /**
+         * =========================================================================
+         * REFACTORED SECURITY ARCHITECTURE - RESTful Endpoints
+         * =========================================================================
+         * 
+         * Gateway validates JWT and sets headers: X-User-Id, X-User-Email, X-User-Role
+         * ExamService reads headers via GatewayHeaderAuthenticationFilter
+         * 
+         * ENDPOINT STRUCTURE:
+         * - /api/exams/** → USER endpoints (exam management)
+         * - /api/admin/exams/** → ADMIN endpoints (system statistics, user monitoring)
+         * 
+         * Clear separation between user operations and administrative operations.
+         */
+        @Autowired
+        private GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                // Disable CSRF (stateless JWT authentication)
+                                .csrf(csrf -> csrf.disable())
 
-                // FÖRKLARING: Stäng av CSRF eftersom vi använder JWT (stateless)
-                .csrf(csrf -> csrf.disable())
+                                // Configure endpoint authorization
+                                .authorizeHttpRequests(authz -> authz
 
-                // FÖRKLARING: Konfigurera vilka endpoints som behöver authentication
-                .authorizeHttpRequests(authz -> authz
-                        
-                        // 🟦 USER ENDPOINTS – kräver ROLE_USER
-                        .requestMatchers("/api/exam/**").hasRole("USER")
+                                                // ADMIN ENDPOINTS - Must come FIRST (most specific)
+                                                // System-wide exam statistics and user monitoring
+                                                .requestMatchers("/api/admin/exams/**")
+                                                .hasRole("ADMIN")
 
-                        // 🔒 ADMIN ENDPOINTS - kräver ROLE_ADMIN
-                        .requestMatchers(
-                                "/api/admin/**").hasRole("ADMIN")
+                                                // USER ENDPOINTS - Standard exam operations
+                                                // All exam CRUD operations for authenticated users
+                                                .requestMatchers("/api/exams/**")
+                                                .hasRole("USER")
 
-                        // Allt annat blockera
-                        .anyRequest().denyAll()
-                )
+                                                // Deny everything else
+                                                .anyRequest().denyAll())
 
-                        
+                                // FÖRKLARING: Stateless sessions - vi använder JWT istället för server sessions
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // FÖRKLARING: Stateless sessions - vi använder JWT istället för server sessions
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                // FÖRKLARING: Lägg till Gateway header filter som läser X-User-* headers
+                                .addFilterBefore(gatewayHeaderAuthenticationFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
 
-                // FÖRKLARING: Lägg till vår JWT filter före standard authentication filter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                // FÖRKLARING: Hantera unauthorized requests
+                                .exceptionHandling(exceptions -> exceptions
+                                                .authenticationEntryPoint((request, response, authException) -> {
 
-                // FÖRKLARING: Hantera unauthorized requests
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) -> {
+                                                        // Returnera 401 Unauthorized med custom meddelande
+                                                        response.setStatus(401);
+                                                        response.setContentType("application/json");
+                                                        response.getWriter().write(
+                                                                        "{\"error\": \"Unauthorized\", \"message\": \"JWT token krävs för denna endpoint\"}");
+                                                })
+                                                .accessDeniedHandler((request, response, accessDeniedException) -> {
 
-                            // Returnera 401 Unauthorized med custom meddelande
-                            response.setStatus(401);
-                            response.setContentType("application/json");
-                            response.getWriter().write(
-                                    "{\"error\": \"Unauthorized\", \"message\": \"JWT token krävs för denna endpoint\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                                                        // Returnera 403 Forbidden när användaren saknar rätt roll
+                                                        response.setStatus(403);
+                                                        response.setContentType("application/json");
+                                                        response.getWriter().write(
+                                                                        "{\"error\": \"Forbidden\", \"message\": \"Du har inte behörighet att komma åt denna resurs\"}");
+                                                }));
 
-                            // Returnera 403 Forbidden när användaren saknar rätt roll
-                            response.setStatus(403);
-                            response.setContentType("application/json");
-                            response.getWriter().write(
-                                    "{\"error\": \"Forbidden\", \"message\": \"Du har inte behörighet att komma åt denna resurs\"}");
-                        }));
-
-        return http.build();
-    }
+                return http.build();
+        }
 }

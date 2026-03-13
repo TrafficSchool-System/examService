@@ -14,6 +14,7 @@ public interface ExamSessionRepository extends JpaRepository<ExamSession, Long> 
 
     List<ExamSession> findAllByUserIdAndFinishedTrueOrderByStartsAtDesc(Long userId);
 
-    int countByFinishedFalse();
-    int countByFinishedTrue();
+    long countByFinishedFalse();
+
+    long countByFinishedTrue();
 }
