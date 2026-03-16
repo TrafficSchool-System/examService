@@ -105,7 +105,7 @@ public class ExamController {
             @RequestBody SubmitAnswerRequest answerRequest) {
         Long userId = getUserIdFromRequest(request);
         examService.saveAnswer(userId, answerRequest.getQuestionId(), answerRequest.getSelectedAnswer());
-        return ResponseEntity.ok("Svar sparat!");
+        return ResponseEntity.ok("Answer saved!");
     }
 
     /**
@@ -119,7 +119,7 @@ public class ExamController {
     public ResponseEntity<String> submitExam(HttpServletRequest request) {
         Long userId = getUserIdFromRequest(request);
         examService.finishExam(userId);
-        return ResponseEntity.ok("Prov avslutat och inlämnat!");
+        return ResponseEntity.ok("Exam submitted!");
     }
 
     /**

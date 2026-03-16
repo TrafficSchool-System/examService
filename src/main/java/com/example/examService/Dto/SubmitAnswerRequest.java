@@ -4,10 +4,10 @@ import jakarta.validation.constraints.NotNull;
 
 public class SubmitAnswerRequest {
 
-    @NotNull(message = "Question ID är obligatoriskt")
+    @NotNull(message = "Question ID is required")
     private Long questionId;
 
-    @NotNull(message = "Selected answer är obligatoriskt")
+    @NotNull(message = "Selected answer is required")
     private String selectedAnswer;
 
     // Constructors

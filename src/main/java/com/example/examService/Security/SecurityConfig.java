@@ -70,7 +70,7 @@ public class SecurityConfig {
                                                         response.setStatus(401);
                                                         response.setContentType("application/json");
                                                         response.getWriter().write(
-                                                                        "{\"error\": \"Unauthorized\", \"message\": \"JWT token krävs för denna endpoint\"}");
+                                                                        "{\"error\": \"Unauthorized\", \"message\": \"JWT token required for this endpoint\"}");
                                                 })
                                                 .accessDeniedHandler((request, response, accessDeniedException) -> {
 
@@ -78,7 +78,7 @@ public class SecurityConfig {
                                                         response.setStatus(403);
                                                         response.setContentType("application/json");
                                                         response.getWriter().write(
-                                                                        "{\"error\": \"Forbidden\", \"message\": \"Du har inte behörighet att komma åt denna resurs\"}");
+                                                                        "{\"error\": \"Forbidden\", \"message\": \"You do not have permission to access this resource\"}");
                                                 }));
 
                 return http.build();

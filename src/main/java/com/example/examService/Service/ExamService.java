@@ -77,7 +77,7 @@ public class ExamService implements ExamServiceInterface {
                 try {
                         session.setQuestionsJson(objectMapper.writeValueAsString(exam.getQuestions()));
                 } catch (Exception e) {
-                        throw new JsonParseException("Kunde inte spara frågor som JSON", e);
+                        throw new JsonParseException("Could not save questions as JSON", e);
                 }
 
                 examSessionRepository.save(session);
@@ -109,7 +109,7 @@ public class ExamService implements ExamServiceInterface {
                                                         List.class,
                                                         QuizQuestionDTO.class));
                 } catch (Exception e) {
-                        throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
+                        throw new JsonParseException("Could not read questions from JSON", e);
                 }
 
                 // Skapa ExamSessionDTO med de sparade frågorna
@@ -166,7 +166,7 @@ public class ExamService implements ExamServiceInterface {
                                                         List.class,
                                                         QuizQuestionDTO.class));
                 } catch (Exception e) {
-                        throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
+                        throw new JsonParseException("Could not read questions from JSON", e);
                 }
 
                 boolean isCorrect = questions.stream()
@@ -243,7 +243,7 @@ public class ExamService implements ExamServiceInterface {
                                                         List.class,
                                                         QuizQuestionDTO.class));
                 } catch (Exception e) {
-                        throw new JsonParseException("Kunde inte läsa frågor från JSON", e);
+                        throw new JsonParseException("Could not read questions from JSON", e);
                 }
 
                 // 4. Hämta användarens svar
