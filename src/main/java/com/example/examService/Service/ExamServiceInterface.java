@@ -9,7 +9,7 @@ import com.example.examService.Dto.ExamSessionDTO;
 import com.example.examService.Dto.ExamStatsDTO;
 
 public interface ExamServiceInterface {
-    ExamSessionDTO startExam(Long userId, String jwtToken);
+    ExamSessionDTO startExam(Long userId);
 
     ExamSessionDTO getExamStatus(Long userId);
 
@@ -23,7 +23,6 @@ public interface ExamServiceInterface {
 
     ExamStatsDTO getExamStats(Long userId);
 
-    Map<String, Integer> getExamCounts(); 
-
+    Map<String, Integer> getExamCounts();
 
 }

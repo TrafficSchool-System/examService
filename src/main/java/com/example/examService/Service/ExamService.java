@@ -48,7 +48,7 @@ public class ExamService implements ExamServiceInterface {
         // 📌 startExam — Startar ett prov, hämta frågor skapa session
         // -------------------------------------------------------
         @Override
-        public ExamSessionDTO startExam(Long userId, String jwtToken) {
+        public ExamSessionDTO startExam(Long userId) {
                 // Avsluta gamla sessioner
                 // Varje användare får bara ha ett aktiv prov
                 // Gammalt pågående prov -> markeras som avslutat
@@ -58,10 +58,9 @@ public class ExamService implements ExamServiceInterface {
                                         examSessionRepository.save(oldSession);
                                 });
 
-                // Hämta frågor från quizService med JWT token
+                // Hämta frågor från quizService med internal API key (konfigurerad i WebClient)
                 ExamSessionDTO exam = quizWebClient.get()
                                 .uri("/final-exam")
-                                .header("Authorization", "Bearer " + jwtToken)
                                 .retrieve()
                                 .bodyToMono(ExamSessionDTO.class)
                                 .block();
@@ -386,9 +385,7 @@ public class ExamService implements ExamServiceInterface {
                 Map<String, Integer> counts = new HashMap<>();
                 counts.put("activeExams", (int) examSessionRepository.countByFinishedFalse());
                 counts.put("completedExams", (int) examSessionRepository.countByFinishedTrue());
-        return counts;
-}
-
-      
+                return counts;
+        }
 
 }

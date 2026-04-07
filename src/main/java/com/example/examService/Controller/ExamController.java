@@ -65,12 +65,9 @@ public class ExamController {
      */
     @PostMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ExamSessionDTO> startExam(
-            HttpServletRequest request,
-            @RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<ExamSessionDTO> startExam(HttpServletRequest request) {
         Long userId = getUserIdFromRequest(request);
-        String jwtToken = authorizationHeader.replace("Bearer ", "");
-        ExamSessionDTO exam = examService.startExam(userId, jwtToken);
+        ExamSessionDTO exam = examService.startExam(userId);
         return ResponseEntity.ok(exam);
     }
 
