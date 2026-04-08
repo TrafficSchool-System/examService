@@ -26,14 +26,14 @@ public class WebClientConfig {
     @Value("${service.api.key}")
     private String serviceApiKey;
 
-    @Value("${QUIZ_SERVICE_URL:http://quiz-service}")
+    @Value("${quiz.service.url:http://quiz-service}")
     private String quizServiceUrl;
 
     /**
      * WebClient för QuizService
      * 
-     * Railway: QUIZ_SERVICE_URL=http://quizservice:8085
-     * Lokal: QUIZ_SERVICE_URL=http://localhost:8085 (eller låt Eureka hantera)
+     * Railway: quiz.service.url=http://quizservice:8085
+     * Lokal: quiz.service.url=http://localhost:8085 (eller låt Eureka hantera)
      * 
      * Endpoints som anropas:
      * - GET /subjects?subjects={ids}&limit={n} → Hämta frågor för prov
