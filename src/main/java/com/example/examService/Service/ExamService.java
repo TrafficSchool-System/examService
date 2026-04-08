@@ -163,10 +163,19 @@ public class ExamService implements ExamServiceInterface {
         @Override
         public void saveAnswer(Long userId, Long questionId, String selectedAnswer) {
 
+                System.out.println("💾 [ExamService] saveAnswer() called:");
+                System.out.println("   userId: " + userId);
+                System.out.println("   questionId: " + questionId);
+                System.out.println("   selectedAnswer: \"" + selectedAnswer + "\"");
+
                 // 1. Hämta den aktiva exam-sessionen för användaren
                 ExamSession session = examSessionRepository.findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(userId)
                                 .orElseThrow(() -> new ExamNotFoundException(
                                                 "Ingen aktiv exam-session för användaren"));
+
+                System.out.println("📋 [ExamService] Found active session for saving:");
+                System.out.println("   Session ID: " + session.getId());
+                System.out.println("   Started at: " + session.getStartsAt());
 
                 // 2. Kolla om det redan finns ett svar för denna fråga i denna session
                 Answer answer = answerRepository.findByExamSession(session).stream()
@@ -230,11 +239,18 @@ public class ExamService implements ExamServiceInterface {
         // -------------------------------------------------------
         @Override
         public void finishExam(Long userId) {
+                System.out.println("🏁 [ExamService] finishExam() called for userId=" + userId);
+                
                 // 1. Hämta den aktiva sessionen
                 ExamSession session = examSessionRepository
                                 .findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(userId)
                                 .orElseThrow(() -> new ExamNotFoundException(
                                                 "Ingen aktiv exam-session för användaren"));
+
+                System.out.println("📋 [ExamService] Found active session:");
+                System.out.println("   Session ID: " + session.getId());
+                System.out.println("   Started at: " + session.getStartsAt());
+                System.out.println("   Expires at: " + session.getExpiresAt());
 
                 // 2. Hämta alla svar för DENNA session (inte alla användarens svar)
                 var answer = answerRepository.findByExamSession(session);
@@ -269,11 +285,18 @@ public class ExamService implements ExamServiceInterface {
         // -------------------------------------------------------
         @Override
         public ExamResultDTO getExamResult(Long userId) {
+                System.out.println("📊 [ExamService] getExamResult() called for userId=" + userId);
+                
                 // 1. Hämta den senaste avslutade sessionen
                 ExamSession session = examSessionRepository
                                 .findTopByUserIdAndFinishedTrueOrderByStartsAtDesc(userId)
                                 .orElseThrow(() -> new ExamNotFoundException(
                                                 "Ingen avslutad exam-session hittades för användaren"));
+
+                System.out.println("📋 [ExamService] Found finished session:");
+                System.out.println("   Session ID: " + session.getId());
+                System.out.println("   Started at: " + session.getStartsAt());
+                System.out.println("   Finished: " + session.isFinished());
 
                 // 2. Hämta resultat för sessionen
                 Result result = resultRepository.findByExamSession(session)
