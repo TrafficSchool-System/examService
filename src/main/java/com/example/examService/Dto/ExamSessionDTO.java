@@ -1,6 +1,7 @@
 package com.example.examService.Dto;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +13,19 @@ public class ExamSessionDTO {
     private LocalDateTime expiresAt;
     private Map<Long, String> savedAnswers; // questionId -> selectedAnswer
 
-    
+    // Helper methods for frontend timezone-safe parsing
+    public long getExpiresAtMillis() {
+        if (expiresAt == null)
+            return 0;
+        return expiresAt.atZone(ZoneId.of("Europe/Stockholm")).toInstant().toEpochMilli();
+    }
+
+    public long getStartsAtMillis() {
+        if (startsAt == null)
+            return 0;
+        return startsAt.atZone(ZoneId.of("Europe/Stockholm")).toInstant().toEpochMilli();
+    }
+
     public ExamSessionDTO() {
     }
 
