@@ -88,6 +88,12 @@ public class ExamService implements ExamServiceInterface {
                 session.setExpiresAt(session.getStartsAt().plusMinutes(exam.getDurationMinutes()));
                 session.setFinished(false);
 
+                System.out.println("⏰ [ExamService] Exam session timestamps:");
+                System.out.println("   startsAt: " + session.getStartsAt());
+                System.out.println("   expiresAt: " + session.getExpiresAt());
+                System.out.println("   durationMinutes: " + exam.getDurationMinutes());
+                System.out.println("   Current server time: " + LocalDateTime.now());
+
                 // Spara frågorna som JSON
                 try {
                         session.setQuestionsJson(objectMapper.writeValueAsString(exam.getQuestions()));
@@ -99,6 +105,10 @@ public class ExamService implements ExamServiceInterface {
 
                 exam.setStartsAt(session.getStartsAt());
                 exam.setExpiresAt(session.getExpiresAt());
+
+                System.out.println("📤 [ExamService] Returning ExamSessionDTO to frontend:");
+                System.out.println("   startsAt: " + exam.getStartsAt());
+                System.out.println("   expiresAt: " + exam.getExpiresAt());
 
                 return exam;
         }
