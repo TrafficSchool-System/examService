@@ -194,11 +194,6 @@ public class ExamService implements ExamServiceInterface {
                 // Uppdatera svaret (oavsett om det är nytt eller gammalt)
                 answer.setSelectedAnswer(selectedAnswer);
 
-                System.out.println("💾 [ExamService] Saving answer:");
-                System.out.println("   questionId: " + questionId);
-                System.out.println("   selectedAnswer: \"" + selectedAnswer + "\"");
-                System.out.println("   selectedAnswer length: " + selectedAnswer.length());
-
                 // 3. Hämta sparade frågor från sessionen för att kontrollera om svaret är rätt
                 List<QuizQuestionDTO> questions;
                 try {
@@ -213,22 +208,10 @@ public class ExamService implements ExamServiceInterface {
 
                 boolean isCorrect = questions.stream()
                                 .filter(q -> q.getId().equals(questionId))
-                                .anyMatch(q -> {
-                                        String correctAnswer = q.getAnswers().get(q.getCorrectAnswerIndex());
-                                        System.out.println("🔍 [ExamService] Checking if answer is correct:");
-                                        System.out.println("   correctAnswerIndex: " + q.getCorrectAnswerIndex());
-                                        System.out.println("   correctAnswer: \"" + correctAnswer + "\"");
-                                        System.out.println("   correctAnswer length: " + correctAnswer.length());
-                                        System.out.println("   correctAnswer trimmed: \"" + correctAnswer.trim() + "\"");
-                                        System.out.println("   selectedAnswer: \"" + selectedAnswer + "\"");
-                                        System.out.println("   selectedAnswer trimmed: \"" + selectedAnswer.trim() + "\"");
-                                        boolean match = correctAnswer.trim().equalsIgnoreCase(selectedAnswer.trim());
-                                        System.out.println("   Match result: " + match);
-                                        return match;
-                                });
+                                .anyMatch(q -> q.getAnswers().get(q.getCorrectAnswerIndex())
+                                                .trim().equalsIgnoreCase(selectedAnswer.trim()));
 
                 answer.setCorrect(isCorrect);
-                System.out.println("✅ [ExamService] Answer marked as: " + (isCorrect ? "CORRECT" : "WRONG"));
 
                 // 4. Spara svaret i databasen (skapar nytt eller uppdaterar befintligt)
                 answerRepository.save(answer);
@@ -269,15 +252,23 @@ public class ExamService implements ExamServiceInterface {
                 result.setScore(score);
                 result.setPassed(passed);
                 result.setFinishedAt(LocalDateTime.now());
-                result.setExamSession(session);
-
-                // 6. Markera session som avsluatad
+                
+                // 6. Markera session som avslutad OCH koppla result till session  
                 session.setFinished(true);
+                result.setExamSession(session);
+                
+                // VIKTIGT: Spara session FÖRST innan result (foreign key constraint)
                 examSessionRepository.save(session);
+
+                System.out.println("✅ [ExamService] Session marked as finished:");
+                System.out.println("   Session ID: " + session.getId());
+                System.out.println("   Score: " + score + "/" + totalQuestions);
+                System.out.println("   Passed: " + passed);
 
                 // 7. Spara resultatet
                 resultRepository.save(result);
 
+                System.out.println("💾 [ExamService] Result saved successfully");
         }
 
         // -------------------------------------------------------
@@ -316,15 +307,16 @@ public class ExamService implements ExamServiceInterface {
 
                 // 4. Hämta användarens svar
                 var answers = answerRepository.findByExamSession(session);
+                
+                System.out.println("📋 [ExamService] Found " + answers.size() + " answers for this session:");
+                answers.forEach(ans -> {
+                        System.out.println("   Q" + ans.getQuestionId() + " -> \"" + ans.getSelectedAnswer() + "\"");
+                });
+                
                 var userAnswersMap = answers.stream()
                                 .collect(java.util.stream.Collectors.toMap(
                                                 Answer::getQuestionId,
                                                 Answer::getSelectedAnswer));
-
-                System.out.println("📋 [ExamService] getExamResult - Returning user answers:");
-                userAnswersMap.forEach((qId, ans) -> {
-                        System.out.println("   Q" + qId + " -> \"" + ans + "\" (length: " + ans.length() + ")");
-                });
 
                 // 5. Räkna ut hur lång tid provet tog (i minuter)
                 Duration duration = Duration.between(session.getStartsAt(), result.getFinishedAt());
