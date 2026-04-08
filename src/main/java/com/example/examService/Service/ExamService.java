@@ -185,6 +185,11 @@ public class ExamService implements ExamServiceInterface {
                 // Uppdatera svaret (oavsett om det är nytt eller gammalt)
                 answer.setSelectedAnswer(selectedAnswer);
 
+                System.out.println("💾 [ExamService] Saving answer:");
+                System.out.println("   questionId: " + questionId);
+                System.out.println("   selectedAnswer: \"" + selectedAnswer + "\"");
+                System.out.println("   selectedAnswer length: " + selectedAnswer.length());
+
                 // 3. Hämta sparade frågor från sessionen för att kontrollera om svaret är rätt
                 List<QuizQuestionDTO> questions;
                 try {
@@ -199,10 +204,22 @@ public class ExamService implements ExamServiceInterface {
 
                 boolean isCorrect = questions.stream()
                                 .filter(q -> q.getId().equals(questionId))
-                                .anyMatch(q -> q.getAnswers().get(q.getCorrectAnswerIndex())
-                                                .trim().equalsIgnoreCase(selectedAnswer.trim()));
+                                .anyMatch(q -> {
+                                        String correctAnswer = q.getAnswers().get(q.getCorrectAnswerIndex());
+                                        System.out.println("🔍 [ExamService] Checking if answer is correct:");
+                                        System.out.println("   correctAnswerIndex: " + q.getCorrectAnswerIndex());
+                                        System.out.println("   correctAnswer: \"" + correctAnswer + "\"");
+                                        System.out.println("   correctAnswer length: " + correctAnswer.length());
+                                        System.out.println("   correctAnswer trimmed: \"" + correctAnswer.trim() + "\"");
+                                        System.out.println("   selectedAnswer: \"" + selectedAnswer + "\"");
+                                        System.out.println("   selectedAnswer trimmed: \"" + selectedAnswer.trim() + "\"");
+                                        boolean match = correctAnswer.trim().equalsIgnoreCase(selectedAnswer.trim());
+                                        System.out.println("   Match result: " + match);
+                                        return match;
+                                });
 
                 answer.setCorrect(isCorrect);
+                System.out.println("✅ [ExamService] Answer marked as: " + (isCorrect ? "CORRECT" : "WRONG"));
 
                 // 4. Spara svaret i databasen (skapar nytt eller uppdaterar befintligt)
                 answerRepository.save(answer);
@@ -280,6 +297,11 @@ public class ExamService implements ExamServiceInterface {
                                 .collect(java.util.stream.Collectors.toMap(
                                                 Answer::getQuestionId,
                                                 Answer::getSelectedAnswer));
+
+                System.out.println("📋 [ExamService] getExamResult - Returning user answers:");
+                userAnswersMap.forEach((qId, ans) -> {
+                        System.out.println("   Q" + qId + " -> \"" + ans + "\" (length: " + ans.length() + ")");
+                });
 
                 // 5. Räkna ut hur lång tid provet tog (i minuter)
                 Duration duration = Duration.between(session.getStartsAt(), result.getFinishedAt());
