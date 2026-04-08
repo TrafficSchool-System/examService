@@ -84,18 +84,18 @@ public class ExamService implements ExamServiceInterface {
                 // Skapa ny session
                 ExamSession session = new ExamSession();
                 session.setUserId(userId);
-                
-                // VIKTIGT: Använd ZoneId för att alltid få Stockholm-tid (inte JVM default som är UTC i Railway)
-                LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Europe/Stockholm"));
+
+                // Använd UTC konsekvent för all tid-lagring i databasen
+                LocalDateTime now = LocalDateTime.now();
                 session.setStartsAt(now);
                 session.setExpiresAt(now.plusMinutes(exam.getDurationMinutes()));
                 session.setFinished(false);
 
-                System.out.println("⏰ [ExamService] Exam session timestamps:");
+                System.out.println("⏰ [ExamService] Exam session timestamps (UTC):");
                 System.out.println("   startsAt: " + session.getStartsAt());
                 System.out.println("   expiresAt: " + session.getExpiresAt());
                 System.out.println("   durationMinutes: " + exam.getDurationMinutes());
-                System.out.println("   Current Stockholm time: " + LocalDateTime.now(java.time.ZoneId.of("Europe/Stockholm")));
+                System.out.println("   Current UTC time: " + LocalDateTime.now());
 
                 // Spara frågorna som JSON
                 try {

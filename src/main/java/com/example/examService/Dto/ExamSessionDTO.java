@@ -17,13 +17,15 @@ public class ExamSessionDTO {
     public long getExpiresAtMillis() {
         if (expiresAt == null)
             return 0;
-        return expiresAt.atZone(ZoneId.of("Europe/Stockholm")).toInstant().toEpochMilli();
+        // LocalDateTime från databasen är i UTC, konvertera till epoch millisekunder
+        return expiresAt.atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
     }
 
     public long getStartsAtMillis() {
         if (startsAt == null)
             return 0;
-        return startsAt.atZone(ZoneId.of("Europe/Stockholm")).toInstant().toEpochMilli();
+        // LocalDateTime från databasen är i UTC, konvertera till epoch millisekunder
+        return startsAt.atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
     }
 
     public ExamSessionDTO() {
