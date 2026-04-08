@@ -41,8 +41,15 @@ public class WebClientConfig {
      */
     @Bean
     public WebClient quizWebClient() {
+        String fullUrl = quizServiceUrl + "/api/quizzes";
+        System.out.println("🔧 [WebClientConfig] Configuring quizWebClient:");
+        System.out.println("   - quiz.service.url property: " + quizServiceUrl);
+        System.out.println("   - Full baseUrl: " + fullUrl);
+        System.out.println("   - API Key configured: "
+                + (serviceApiKey != null && !serviceApiKey.isEmpty() ? "YES (hidden)" : "NO"));
+
         return WebClient.builder()
-                .baseUrl(quizServiceUrl + "/api/quizzes")
+                .baseUrl(fullUrl)
                 .defaultHeader("Content-Type", "application/json")
                 .defaultHeader("X-Internal-API-Key", serviceApiKey)
                 .defaultHeader("X-Internal-Source", "exam-service")

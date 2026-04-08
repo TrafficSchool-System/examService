@@ -49,21 +49,37 @@ public class ExamService implements ExamServiceInterface {
         // -------------------------------------------------------
         @Override
         public ExamSessionDTO startExam(Long userId) {
+                System.out.println("🎯 [ExamService] startExam() called for userId=" + userId);
+
                 // Avsluta gamla sessioner
                 // Varje användare får bara ha ett aktiv prov
                 // Gammalt pågående prov -> markeras som avslutat
                 examSessionRepository.findTopByUserIdAndFinishedFalseOrderByStartsAtDesc(userId)
                                 .ifPresent(oldSession -> {
+                                        System.out.println("🧹 [ExamService] Closing old exam session: "
+                                                        + oldSession.getId());
                                         oldSession.setFinished(true);
                                         examSessionRepository.save(oldSession);
                                 });
 
+                System.out.println("📞 [ExamService] Calling quizService WebClient: GET /final-exam");
+                System.out.println("🔍 [ExamService] WebClient configured with URL: " + quizWebClient.toString());
+
                 // Hämta frågor från quizService med internal API key (konfigurerad i WebClient)
-                ExamSessionDTO exam = quizWebClient.get()
-                                .uri("/final-exam")
-                                .retrieve()
-                                .bodyToMono(ExamSessionDTO.class)
-                                .block();
+                ExamSessionDTO exam;
+                try {
+                        exam = quizWebClient.get()
+                                        .uri("/final-exam")
+                                        .retrieve()
+                                        .bodyToMono(ExamSessionDTO.class)
+                                        .block();
+                        System.out.println("✅ [ExamService] Successfully received exam from quizService");
+                } catch (Exception e) {
+                        System.err.println("❌ [ExamService] WebClient call FAILED: " + e.getClass().getName());
+                        System.err.println("❌ [ExamService] Error message: " + e.getMessage());
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to fetch exam from quizService", e);
+                }
 
                 // Skapa ny session
                 ExamSession session = new ExamSession();
