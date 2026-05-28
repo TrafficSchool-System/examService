@@ -33,50 +33,53 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter;
+        @Autowired
+        private GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // Disable CSRF (stateless JWT authentication)
-                .csrf(csrf -> csrf.disable())
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                // Disable CSRF (stateless JWT authentication)
+                                .csrf(csrf -> csrf.disable())
 
-                // Configure endpoint authorization
-                .authorizeHttpRequests(authz -> authz
-                        // ADMIN ENDPOINTS - Must come FIRST (most specific)
-                        .requestMatchers("/api/admin/exams/**").hasRole("ADMIN")
+                                // Configure endpoint authorization
+                                .authorizeHttpRequests(authz -> authz
+                                                // Health probe (Azure Container Apps)
+                                                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 
-                        // USER ENDPOINTS - Standard exam operations
-                        .requestMatchers("/api/exams/**").hasRole("USER")
+                                                // ADMIN ENDPOINTS - Must come FIRST (most specific)
+                                                .requestMatchers("/api/admin/exams/**").hasRole("ADMIN")
 
-                        // Deny everything else
-                        .anyRequest().denyAll())
+                                                // USER ENDPOINTS - Standard exam operations
+                                                .requestMatchers("/api/exams/**").hasRole("USER")
 
-                // Stateless sessions - using JWT instead of server sessions
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                                // Deny everything else
+                                                .anyRequest().denyAll())
 
-                // Add Gateway header filter to read X-User-* headers
-                .addFilterBefore(
-                        gatewayHeaderAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class)
+                                // Stateless sessions - using JWT instead of server sessions
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Exception handling
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(401);
-                            response.setContentType("application/json");
-                            response.getWriter().write(
-                                    "{\"error\": \"Unauthorized\", \"message\": \"JWT token required\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(403);
-                            response.setContentType("application/json");
-                            response.getWriter().write(
-                                    "{\"error\": \"Forbidden\", \"message\": \"Insufficient permissions\"}");
-                        }));
+                                // Add Gateway header filter to read X-User-* headers
+                                .addFilterBefore(
+                                                gatewayHeaderAuthenticationFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
 
-        return http.build();
-    }
+                                // Exception handling
+                                .exceptionHandling(exceptions -> exceptions
+                                                .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.setStatus(401);
+                                                        response.setContentType("application/json");
+                                                        response.getWriter().write(
+                                                                        "{\"error\": \"Unauthorized\", \"message\": \"JWT token required\"}");
+                                                })
+                                                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                                                        response.setStatus(403);
+                                                        response.setContentType("application/json");
+                                                        response.getWriter().write(
+                                                                        "{\"error\": \"Forbidden\", \"message\": \"Insufficient permissions\"}");
+                                                }));
+
+                return http.build();
+        }
 }
