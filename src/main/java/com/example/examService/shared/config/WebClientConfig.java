@@ -30,14 +30,14 @@ public class WebClientConfig {
     @Value("${service.api.key}")
     private String serviceApiKey;
 
-    @Value("${quiz.service.url:http://quiz-service}")
+    @Value("${quiz-service.base-url}")
     private String quizServiceUrl;
 
     /**
      * WebClient for QuizService
      * 
-     * Railway: quiz.service.url=http://quizservice:8085
-     * Local: quiz.service.url=http://localhost:8085
+    * Railway: quiz-service.base-url=http://quiz-service
+    * Local: quiz-service.base-url=http://localhost:8085
      * 
      * Endpoints called:
      * - GET /api/quizzes/final-exam → Fetch 70 questions for exam
